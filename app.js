@@ -5,7 +5,7 @@ var inAltspace = window.hasOwnProperty('altspace');
 var scene = new THREE.Scene();
 var camera;
 var renderer;
-var loader = new THREE.AltOBJMTLLoader();
+var loader = new THREE.OBJMTLLoader();
 var pi = Math.PI;
 var OneThirdPi = pi / 3;
 var twoPi = 2 * pi;
@@ -141,7 +141,6 @@ function InitGame() {
     clock = new THREE.Clock();
 
     if (inAltspace) {
-        //renderer = new THREE.AltRenderer(); // depricated.
         renderer = altspace.getThreeJSRenderer({ version: '0.2.0' });
 
     }
@@ -193,7 +192,10 @@ function loadModels() {
 
 function addModel(modelInfo) {
     var name = modelInfo;
-    loader.load("Models/" + name + ".obj", function (object) {
+    var baseUrl = "Models/" + name;
+    var objUrl = baseUrl + ".obj";
+    var mtlUrl = baseUrl + ".mtl";
+    loader.load(objUrl, mtlUrl, function (object) {
 
         object.scale.set(1, 1, 1);
         object.position.set(0, 0, 0);
@@ -304,7 +306,7 @@ function onModelsLoaded() {
         var log;
         log = trees[i].lower;
         cursorEvents.addObject(log);
-        log.addEventListener("holocursordown", function (event) {
+        log.addEventListener("cursordown", function (event) {
             var newHeight = this.position.y - dragonHeight / 4;
             if (newHeight < lowerTrunkLimit) return;
             this.position.y = newHeight;
@@ -314,7 +316,7 @@ function onModelsLoaded() {
         });
         log = trees[i].upper;
         cursorEvents.addObject(log);
-        log.addEventListener("holocursordown", function (event) {
+        log.addEventListener("cursordown", function (event) {
             var newHeight = this.position.y + dragonHeight / 4;
             if (newHeight > upperTrunkLimit) return;
             this.position.y = newHeight;
@@ -326,10 +328,10 @@ function onModelsLoaded() {
 
     // add some event listeners
     cursorEvents.addObject(terrain);
-    terrain.addEventListener("holocursordown", function (event) {
+    terrain.addEventListener("cursordown", function (event) {
         handleClick();
     });
-    terrain.addEventListener("holocursorup", function (event) {
+    terrain.addEventListener("cursorup", function (event) {
     });
     //$('body').mousedown(function () {
     //    handleClick();
