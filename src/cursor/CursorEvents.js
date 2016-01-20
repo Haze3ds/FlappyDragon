@@ -200,7 +200,7 @@ CursorEvents.prototype.addObject = function( object ) {
 CursorEvents.prototype._cursorEventDispatch = function( event ) {
 
 	var detail = this._createEventDetail( event );
-	var objectEvent = new CustomEvent( event.type, { detail: detail });
+	var objectEvent = {type: event.type, detail: detail};
 
 	if ( this.TRACE ) console.log(event.type, detail);
 

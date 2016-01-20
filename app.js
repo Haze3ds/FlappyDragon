@@ -159,7 +159,7 @@ function InitGame() {
     }
 
 
-    cursorEvents = new CursorEvents();
+    cursorEvents = new CursorEvents(scene);
     cursorEvents.enableMouseEvents(camera);
 
     loadSounds();
