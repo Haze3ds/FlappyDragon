@@ -18,6 +18,7 @@ var props;
 var dragon;
 var clouds = [];
 var trees = [];
+var treeCount = 6;
 var idleMessage = "Click the grass to Flappy!"
 
 var modelInfos = [
@@ -159,8 +160,10 @@ function InitGame() {
     }
 
 
-    cursorEvents = new CursorEvents(scene);
-    cursorEvents.enableMouseEvents(camera);
+    if (!inAltspace) {
+        cursorEvents = new CursorEvents(scene);
+        cursorEvents.enableMouseEvents(camera);
+    }
 
     loadSounds();
     loadModels();
@@ -208,7 +211,7 @@ function addModel(modelInfo) {
 }
 
 function updateLowerLogs() {
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < treeCount; i++) {
         var lower = trees[i].lower;
         var upper = trees[i].upper;
         lower.position.y = upper.position.y - treeGap;
@@ -216,7 +219,7 @@ function updateLowerLogs() {
     }
 }
 function updateUpperLogs() {
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < treeCount; i++) {
         var lower = trees[i].lower;
         var upper = trees[i].upper;
         upper.position.y = lower.position.y + treeGap;
@@ -276,7 +279,6 @@ function onModelsLoaded() {
     trunk.position.y = treeBase;
     trunk.scale.y = treeScale;
 
-    var treeCount = 6;
     for (var i = 0; i < treeCount; i++) {
         var tree = {};
         var lowerTrunk = trunk.clone();
@@ -302,10 +304,10 @@ function onModelsLoaded() {
         trees.push(tree);
     }
     // tree events
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < treeCount; i++) {
         var log;
         log = trees[i].lower;
-        cursorEvents.addObject(log);
+        if (!inAltspace) { cursorEvents.addObject(log); }
         log.addEventListener("cursordown", function (event) {
             var newHeight = this.position.y - dragonHeight / 4;
             if (newHeight < lowerTrunkLimit) return;
@@ -315,7 +317,7 @@ function onModelsLoaded() {
             updateUpperLogs();
         });
         log = trees[i].upper;
-        cursorEvents.addObject(log);
+        if (!inAltspace) { cursorEvents.addObject(log); }
         log.addEventListener("cursordown", function (event) {
             var newHeight = this.position.y + dragonHeight / 4;
             if (newHeight > upperTrunkLimit) return;
@@ -327,7 +329,7 @@ function onModelsLoaded() {
     }
 
     // add some event listeners
-    cursorEvents.addObject(terrain);
+    if (!inAltspace) { cursorEvents.addObject(terrain); }
     terrain.addEventListener("cursordown", function (event) {
         handleClick();
     });
@@ -364,7 +366,7 @@ function onGameIdle() {
     gamemode = "idle";
     upVelocity = 0;
     localDragonHeight = 12 + treeGap / 2;
-    $('#status').html(idleMessage);
+    $('#status')[0].textContent = idleMessage;
 }
 
 function onGamePlay() {
@@ -376,14 +378,12 @@ function onGamePlay() {
     upVelocity = jumpVelocity; // initial flap
     PlayFlapSound();
     //localDragonHeight = 24;
-    $('#status').html("Score");
+    $('#status')[0].textContent = "Score";
 }
 
-function onGameUnlock() {
+function setGameIdle() {
     gamestate.userData.syncData.status = idleMessage;
-    gamestate.userData.syncData.lockedUserId = undefined;
     firebaseSync.saveObject(gamestate);
-    isLocalPlay = false;
     onGameIdle();
 }
 
@@ -394,8 +394,17 @@ function onGameOver() {
     console.log("over");
     isDead = true;
     gamemode = "over";
-    $('#status').html("Game Over!");
-    setTimeout(onGameUnlock, 3000);
+    $('#status')[0].textContent = "Game Over!";
+    gamestate.userData.syncData.status = "Game Over!";
+    updateHighScores();
+    localFlaps = 0;
+    gamestate.userData.syncData.flaps = 0;
+
+    gamestate.userData.syncData.lockedUserId = undefined;
+    firebaseSync.saveObject(gamestate);
+    isLocalPlay = false;
+
+    setTimeout(setGameIdle, 3000);
 }
 
 
@@ -539,7 +548,7 @@ function compareScores(a, b) {
 
 function animate() {
 
-    cursorEvents.update();
+    if (!inAltspace) { cursorEvents.update(); }
 
     delta = clock.getDelta();
     time += delta;
@@ -574,7 +583,7 @@ function animate() {
         //$('#status').html("out");
         var postAngularWidth = .1;  // todo: need to find this true value;
         for (var i = 0; i < trees.length; i++) {
-            var postCenter = twoPi / 6 * i;
+            var postCenter = twoPi / treeCount * i;
             var start = postCenter - postAngularWidth;
             var end = postCenter + postAngularWidth;
             var tree = trees[i];
@@ -644,12 +653,6 @@ function animate() {
         if (!isDead) {
             state.status = localUser.displayName + "'s Score";
         }
-        else {
-            updateHighScores();
-            localFlaps = 0;
-            state.status = "Game Over!";
-            state.flaps = 0;
-        }
 
         firebaseSync.saveObject(gamestate);
     }
@@ -688,29 +691,22 @@ function animate() {
         }
     }
 
-    $('#score').html(state.score);
-    $('#status').html(state.status);
+    $('#score')[0].textContent = state.score;
+    $('#status')[0].textContent = state.status;
 
     // update html 
-    $('#stats #delta').text(delta.toFixed(3));
-    $('#stats #time').text(time.toFixed(3));
-    $('#stats #fps').text(Math.round(fps));
+    // $('#stats #delta').text(delta.toFixed(3));
+    // $('#stats #time').text(time.toFixed(3));
+    // $('#stats #fps').text(Math.round(fps));
 
 
-    showSyncInfo();
+    // showSyncInfo();
 
 
 
     updateClouds();
 
-    if (inAltspace) {
-        window.requestAnimationFrame(animate);
-    }
-    else {
-        setTimeout(function () {
-            requestAnimationFrame(animate);
-        }, 1000 / 60);
-    }
+    requestAnimationFrame(animate);
 
     renderer.render(scene, camera);
 
