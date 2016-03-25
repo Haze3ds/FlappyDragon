@@ -202,7 +202,7 @@ function addModel(modelInfo) {
         object.rotation.set(0, 0, 0);
 
         models[name] = object;
-        if (--loadsPending === 0) onModelsLoaded();
+        if (--loadsPending === 0) setupSceneAndStartSync();
     });
 
 }
@@ -247,7 +247,7 @@ function setupTree(trunk, i) {
     trees.push(tree);
 }
 
-function shiftLowerLog(event) {
+function shiftLowerLog() {
     var newHeight = this.position.y - dragonHeight / 4;
     if (newHeight < lowerTrunkLimit) return;
     this.position.y = newHeight;
@@ -256,7 +256,7 @@ function shiftLowerLog(event) {
     updateUpperLogs();
 }
 
-function shiftUpperLog(event) {
+function shiftUpperLog() {
     var newHeight = this.position.y + dragonHeight / 4;
     if (newHeight > upperTrunkLimit) return;
     this.position.y = newHeight;
@@ -265,7 +265,7 @@ function shiftUpperLog(event) {
     updateLowerLogs();
 }
 
-function onModelsLoaded() {
+function setupSceneAndStartSync() {
     var i;
 
     scene.scale.set(scale, scale, scale);
