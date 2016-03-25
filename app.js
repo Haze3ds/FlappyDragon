@@ -331,16 +331,11 @@ function onModelsLoaded() {
     // add some event listeners
     if (!inAltspace) { cursorEvents.addObject(terrain); }
     terrain.addEventListener("cursordown", function (event) {
-        handleClick();
+        lockOrFlap();
     });
-    terrain.addEventListener("cursorup", function (event) {
-    });
-    //$('body').mousedown(function () {
-    //    handleClick();
-    //});
     $(window).keypress(function (e) {
         if (e.keyCode == 0 || e.keyCode == 32) {
-            handleClick();
+            lockOrFlap();
         }
     });
 
@@ -353,14 +348,11 @@ function onModelsLoaded() {
 
 function onSyncReady() {
     // init and start main game loop    
-    onGameIdle();
-
+    resetToIdle();
     animate();
 }
 
-
-
-function onGameIdle() {
+function resetToIdle() {
     console.log("idle");
     isDead = false;
     gamemode = "idle";
@@ -369,7 +361,8 @@ function onGameIdle() {
     $('#status')[0].textContent = idleMessage;
 }
 
-function onGamePlay() {
+function startGamePlay() {
+    isLocalPlay = true;
     startingPostsTraveled = postsTraveled;
     score = 0;
     console.log("play");
@@ -381,10 +374,10 @@ function onGamePlay() {
     $('#status')[0].textContent = "Score";
 }
 
-function setGameIdle() {
+function setGamestateAndResetToIdle() {
     gamestate.userData.syncData.status = idleMessage;
     firebaseSync.saveObject(gamestate);
-    onGameIdle();
+    resetToIdle();
 }
 
 function onGameOver() {
@@ -404,30 +397,19 @@ function onGameOver() {
     firebaseSync.saveObject(gamestate);
     isLocalPlay = false;
 
-    setTimeout(setGameIdle, 3000);
+    setTimeout(setGamestateAndResetToIdle, 3000);
 }
 
 
 
 function TryLockGame() {
-
-    if (gamestate.userData.syncData.lockedUserId) {
-        // game already locked;
-    }
-    else {
-        gamestate.userData.syncData.lockedUserId = localUser.userId;
-        firebaseSync.saveObject(gamestate);
-        onGameLocked();
-    }
+    if (gamestate.userData.syncData.lockedUserId) { return; }
+    gamestate.userData.syncData.lockedUserId = localUser.userId;
+    firebaseSync.saveObject(gamestate);
+    startGamePlay();
 }
 
-function onGameLocked() {
-    isLocalPlay = true;
-    onGamePlay(); // start a new game
-}
-
-
-function handleClick() {
+function lockOrFlap() {
     switch (gamemode) {
         case "idle":
             TryLockGame();
@@ -436,9 +418,6 @@ function handleClick() {
             upVelocity = jumpVelocity; // flap
             localFlaps++;
             PlayFlapSound();
-            break;
-        case "over":
-            //onGamePlay(); // retry
             break;
     }
 }
@@ -693,16 +672,6 @@ function animate() {
 
     $('#score')[0].textContent = state.score;
     $('#status')[0].textContent = state.status;
-
-    // update html 
-    // $('#stats #delta').text(delta.toFixed(3));
-    // $('#stats #time').text(time.toFixed(3));
-    // $('#stats #fps').text(Math.round(fps));
-
-
-    // showSyncInfo();
-
-
 
     updateClouds();
 
