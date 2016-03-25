@@ -616,6 +616,7 @@ function animate() {
 
         if (!isDead) {
             state.status = localUser.displayName + "'s Score";
+            firebaseSync.firebaseRoom.child("objects/gamestate/syncData/status").onDisconnect().set(idleMessage);
         }
 
         firebaseSync.saveObject(gamestate);
