@@ -1,5 +1,4 @@
-﻿//var inAltspace = !!window.Alt;
-var inAltspace = window.hasOwnProperty('altspace');
+﻿var inAltspace = window.hasOwnProperty('altspace');
 
 
 var scene = new THREE.Scene();
@@ -122,8 +121,6 @@ function InitGameState() {
     firebaseSync = new FirebaseSync(firebaseRootUrl, appId);
     firebaseSync.addObject(gamestate, "gamestate");
 
-    // gamestate.userData.syncData = {};
-
     InitGame();
 }
 
@@ -238,7 +235,6 @@ function onModelsLoaded() {
         }
         else {
             // enclosure
-            //var height = -window.innerHeight / 2;
             var height = -400;
             scene.position.set(0, height, 0);
         }
@@ -252,8 +248,6 @@ function onModelsLoaded() {
     for (var i = 0; i < 3; i++) {
         var cloud = models['Cloud'].clone();
         cloud.rotation.y = (2 * pi) * (i / 3);
-        //cloud.position.y = 10;
-        //cloud.visible = false;
         scene.add(cloud);
         clouds.push(cloud);
     }
@@ -370,7 +364,6 @@ function startGamePlay() {
     gamemode = "play";
     upVelocity = jumpVelocity; // initial flap
     PlayFlapSound();
-    //localDragonHeight = 24;
     $('#status')[0].textContent = "Score";
 }
 
@@ -559,7 +552,6 @@ function animate() {
         }
 
         // did we crash into post?
-        //$('#status').html("out");
         var postAngularWidth = .1;  // todo: need to find this true value;
         for (var i = 0; i < trees.length; i++) {
             var postCenter = twoPi / treeCount * i;
@@ -586,13 +578,9 @@ function animate() {
                     // collision
                     if (gamemode !== "over") onGameOver();
                 }
-
-                //$('#status').html("in");
             }
         }
     }
-
-    //dragon.rotation.z = upVelocity;  // FIXME: Can't do this because current obj file has off pivot that's not at the origin.
 
     // move dragon around the ring
     if (!isDead) {
