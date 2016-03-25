@@ -18,7 +18,7 @@ var dragon;
 var clouds = [];
 var trees = [];
 var treeCount = 6;
-var idleMessage = "Click the grass to Flappy!"
+var idleMessage = "Click the grass to Flappy!";
 
 var modelInfos = [
     'Terrain',
@@ -30,7 +30,7 @@ var modelInfos = [
 ];
 var loadsPending;
 var models = {};
-var cloudspeed = -.05;
+var cloudspeed = -0.05;
 var clock;
 var time = 0;
 var delta = 0;
@@ -83,7 +83,7 @@ function logUsers() {
 
     if ("Alt" in window) {
         Alt.Users.getUsers().then(function (args) {
-            console.log(args)
+            console.log(args);
         });
     }
 }
@@ -175,11 +175,11 @@ function loadSounds() {
     swooshingSound = new Audio("sounds/sfx_swooshing.ogg");
     wingSound = new Audio("sounds/sfx_wing.ogg");
 
-    hitSound.volume = .5;
-    dieSound.volume = .5;
-    pointSound.volume = .2;
-    swooshingSound.volume = .5;
-    wingSound.volume = .5;
+    hitSound.volume = 0.5;
+    dieSound.volume = 0.5;
+    pointSound.volume = 0.2;
+    swooshingSound.volume = 0.5;
+    wingSound.volume = 0.5;
 }
 
 function loadModels() {
@@ -226,6 +226,7 @@ function updateUpperLogs() {
 
 
 function onModelsLoaded() {
+    var i;
 
     scene.scale.set(scale, scale, scale);
     if (inAltspace) {
@@ -245,35 +246,35 @@ function onModelsLoaded() {
     }
 
     // setup clouds
-    for (var i = 0; i < 3; i++) {
-        var cloud = models['Cloud'].clone();
+    for (i = 0; i < 3; i++) {
+        var cloud = models.Cloud.clone();
         cloud.rotation.y = (2 * pi) * (i / 3);
         scene.add(cloud);
         clouds.push(cloud);
     }
 
     // setup dragon
-    dragon = models['Dragon'].clone();
+    dragon = models.Dragon.clone();
     localDragonHeight = 24;
     scene.add(dragon);
 
     // setup terrain, base and props
     var hill = new THREE.Object3D();
-    terrain = models['Terrain'].clone();
+    terrain = models.Terrain.clone();
     hill.add(terrain);
-    basering = models['BaseRing'].clone();
+    basering = models.BaseRing.clone();
     hill.add(basering);
-    props = models['FarmHouseAndProps'].clone();
+    props = models.FarmHouseAndProps.clone();
     hill.add(props);
     hill.rotation.y = -2 * pi / 4;
     scene.add(hill);
 
     // setup trees
-    var trunk = models['TreeTrunk'];
+    var trunk = models.TreeTrunk;
     trunk.position.y = treeBase;
     trunk.scale.y = treeScale;
 
-    for (var i = 0; i < treeCount; i++) {
+    for (i = 0; i < treeCount; i++) {
         var tree = {};
         var lowerTrunk = trunk.clone();
         var upperTrunk = trunk.clone();
@@ -298,7 +299,7 @@ function onModelsLoaded() {
         trees.push(tree);
     }
     // tree events
-    for (var i = 0; i < treeCount; i++) {
+    for (i = 0; i < treeCount; i++) {
         var log;
         log = trees[i].lower;
         if (!inAltspace) { cursorEvents.addObject(log); }
@@ -328,7 +329,7 @@ function onModelsLoaded() {
         lockOrFlap();
     });
     $(window).keypress(function (e) {
-        if (e.keyCode == 0 || e.keyCode == 32) {
+        if (e.keyCode === 0 || e.keyCode == 32) {
             lockOrFlap();
         }
     });
@@ -446,7 +447,7 @@ function PlayDeathSounds() {
 
     setTimeout(function () {
         dieSound.play();
-    }, 500)
+    }, 500);
 }
 
 function PlayFlapSound() {
@@ -503,7 +504,7 @@ function displayHighScores() {
         var player = scores[i];
         if (typeof player === "undefined") break;
 
-        $('#highscores').append('<span>' + +player.highScore + " ... " + player.displayName + '</span></br>');
+        $('#highscores').append('<span>' + player.highScore + " ... " + player.displayName + '</span></br>');
     }
 
     // gamestate data will be auto saved next animation frame.
@@ -552,7 +553,7 @@ function animate() {
         }
 
         // did we crash into post?
-        var postAngularWidth = .1;  // todo: need to find this true value;
+        var postAngularWidth = 0.1;  // todo: need to find this true value;
         for (var i = 0; i < trees.length; i++) {
             var postCenter = twoPi / treeCount * i;
             var start = postCenter - postAngularWidth;
@@ -602,7 +603,7 @@ function animate() {
         highScoresShown = true;
         setTimeout(function () {
             displayHighScores();
-        },3000)
+        },3000);
         
     }
 
@@ -668,7 +669,7 @@ function animate() {
     renderer.render(scene, camera);
 
     localFlap = false;
-};
+}
 
 
 if (inAltspace) {
