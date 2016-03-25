@@ -1,6 +1,5 @@
-﻿//var inAltspace = !!window.Alt;
-var inAltspace = window.hasOwnProperty('altspace');
-
+﻿var inAltspace = window.hasOwnProperty('altspace');
+var isGearVR = /mobile/i.test(navigator.userAgent);
 
 var scene = new THREE.Scene();
 var camera;
@@ -19,7 +18,7 @@ var dragon;
 var clouds = [];
 var trees = [];
 var treeCount = 6;
-var idleMessage = "Click the grass to Flappy!"
+var idleMessage = "Click the grass to Flappy!";
 
 var modelInfos = [
     'Terrain',
@@ -31,7 +30,7 @@ var modelInfos = [
 ];
 var loadsPending;
 var models = {};
-var cloudspeed = -.05;
+var cloudspeed = -0.05;
 var clock;
 var time = 0;
 var delta = 0;
@@ -46,7 +45,7 @@ var gravity = 9.8 * 9.8 * 4;
 var upVelocity = 0;
 var jumpVelocity = gravity / 4;
 var dragonHeight = 12;
-var treeGap = dragonHeight * 2.5;
+var treeGap = dragonHeight * 2.6;
 var treeScale = 1.0;
 var treeBase = 20;
 var postsTraveled = 0;
@@ -76,17 +75,10 @@ var lastSyncStatus = "Game Over!";
 
 var highScoresShown = false;
 
-
-function logUsers() {
-    console.log("logUsers called.");
-
-    console.log(window.innerDepth);
-
-    if ("Alt" in window) {
-        Alt.Users.getUsers().then(function (args) {
-            console.log(args)
-        });
-    }
+var debug = false;
+if (debug) {
+    stats.style.display = 'block';
+    sync.style.display = 'block';
 }
 
 
@@ -107,7 +99,6 @@ function setLocalUser() {
     if ("Alt" in window) {
         window.Alt.Users.getLocalUser().then(function (user) {
             localUser = { displayName: user.displayName, isLocal: user.isLocal, userId: user.userId };
-            console.log(user);
         });
     }
 }
@@ -122,8 +113,6 @@ function InitGameState() {
     firebaseSync = new FirebaseSync(firebaseRootUrl, appId);
     firebaseSync.addObject(gamestate, "gamestate");
 
-    // gamestate.userData.syncData = {};
-
     InitGame();
 }
 
@@ -137,8 +126,6 @@ function Init() {
 }
 
 function InitGame() {
-    console.log('localUser: ' + localUser.displayName);
-
     clock = new THREE.Clock();
 
     if (inAltspace) {
@@ -165,24 +152,61 @@ function InitGame() {
         cursorEvents.enableMouseEvents(camera);
     }
 
-    loadSounds();
-    loadModels();
+    loadSounds().then(function () {
+        loadModels();
+    });
 }
+
+var AudioContext = window.AudioContext || window.webkitAudioContext;
+var audioContext = new AudioContext();
+function AppAudio(url) {
+    this.volume = 1;
+    this.loaded = new Promise(function (resolve, reject) {
+        var req = new XMLHttpRequest();
+        req.open('GET', url);
+        req.responseType = 'arraybuffer';
+        req.onload = function () {
+            audioContext.decodeAudioData(req.response, function (buffer) {
+                this.buffer = buffer;
+                resolve();
+            }.bind(this));
+        }.bind(this);
+        req.send();
+    }.bind(this));
+}
+AppAudio.prototype.play = function () {
+	var source = audioContext.createBufferSource();
+	source.buffer = this.buffer;
+
+	var gainNode = audioContext.createGain();
+	gainNode.gain.value = this.volume;
+	source.connect(gainNode);
+	gainNode.connect(audioContext.destination);
+
+	source.start(0);
+};
 
 
 function loadSounds() {
-    // Load sound effect. Chromium doesn't support mp3 so include wav too.
-    hitSound = new Audio("sounds/sfx_hit.ogg");
-    dieSound = new Audio("sounds/sfx_die.ogg");
-    pointSound = new Audio("sounds/sfx_point.ogg");
-    swooshingSound = new Audio("sounds/sfx_swooshing.ogg");
-    wingSound = new Audio("sounds/sfx_wing.ogg");
+    // Load sound effect.
+    hitSound = new AppAudio("sounds/sfx_hit.ogg");
+    dieSound = new AppAudio("sounds/sfx_die.ogg");
+    pointSound = new AppAudio("sounds/sfx_point.ogg");
+    swooshingSound = new AppAudio("sounds/sfx_swooshing.ogg");
+    wingSound = new AppAudio("sounds/sfx_wing.ogg");
 
-    hitSound.volume = .5;
-    dieSound.volume = .5;
-    pointSound.volume = .2;
-    swooshingSound.volume = .5;
-    wingSound.volume = .5;
+    hitSound.volume = 0.5;
+    dieSound.volume = 0.5;
+    pointSound.volume = 0.2;
+    swooshingSound.volume = 0.5;
+    wingSound.volume = 0.5;
+    return Promise.all([
+        hitSound.loaded,
+        dieSound.loaded,
+        pointSound.loaded,
+        swooshingSound.loaded,
+        wingSound.loaded
+    ]);
 }
 
 function loadModels() {
@@ -205,7 +229,7 @@ function addModel(modelInfo) {
         object.rotation.set(0, 0, 0);
 
         models[name] = object;
-        if (--loadsPending === 0) onModelsLoaded();
+        if (--loadsPending === 0) setupSceneAndStartSync();
     });
 
 }
@@ -227,8 +251,49 @@ function updateUpperLogs() {
     }
 }
 
+function setupTree(trunk, i) {
+    var tree = {};
+    var lowerTrunk = trunk.clone();
+    var upperTrunk = trunk.clone();
+    tree.lower = lowerTrunk;
+    tree.upper = upperTrunk;
+    tree.baseHeight = treeBase;
 
-function onModelsLoaded() {
+    lowerTrunk.rotation.y = twoPi / treeCount * i;
+
+    upperTrunk.rotation.y = -twoPi / treeCount * i;
+    upperTrunk.position.y += treeGap;
+    upperTrunk.rotation.x = pi;  // inver upper trunks
+
+    firebaseSync.addObject(lowerTrunk, "lowerTrunk-" + i);
+    firebaseSync.addObject(upperTrunk, "upperTrunk-" + i);
+
+    scene.add(lowerTrunk);
+    scene.add(upperTrunk);
+
+    trees.push(tree);
+}
+
+function shiftLowerLog() {
+    var newHeight = this.position.y - dragonHeight / 4;
+    if (newHeight < lowerTrunkLimit) return;
+    this.position.y = newHeight;
+
+    firebaseSync.saveObject(this);
+    updateUpperLogs();
+}
+
+function shiftUpperLog() {
+    var newHeight = this.position.y + dragonHeight / 4;
+    if (newHeight > upperTrunkLimit) return;
+    this.position.y = newHeight;
+
+    firebaseSync.saveObject(this);
+    updateLowerLogs();
+}
+
+function setupSceneAndStartSync() {
+    var i;
 
     scene.scale.set(scale, scale, scale);
     if (inAltspace) {
@@ -238,7 +303,6 @@ function onModelsLoaded() {
         }
         else {
             // enclosure
-            //var height = -window.innerHeight / 2;
             var height = -400;
             scene.position.set(0, height, 0);
         }
@@ -249,154 +313,103 @@ function onModelsLoaded() {
     }
 
     // setup clouds
-    for (var i = 0; i < 3; i++) {
-        var cloud = models['Cloud'].clone();
+    for (i = 0; i < 3; i++) {
+        var cloud = models.Cloud.clone();
         cloud.rotation.y = (2 * pi) * (i / 3);
-        //cloud.position.y = 10;
-        //cloud.visible = false;
         scene.add(cloud);
         clouds.push(cloud);
     }
 
     // setup dragon
-    dragon = models['Dragon'].clone();
+    dragon = models.Dragon.clone();
     localDragonHeight = 24;
     scene.add(dragon);
 
     // setup terrain, base and props
     var hill = new THREE.Object3D();
-    terrain = models['Terrain'].clone();
+    terrain = models.Terrain.clone();
     hill.add(terrain);
-    basering = models['BaseRing'].clone();
+    basering = models.BaseRing.clone();
     hill.add(basering);
-    props = models['FarmHouseAndProps'].clone();
+    props = models.FarmHouseAndProps.clone();
     hill.add(props);
     hill.rotation.y = -2 * pi / 4;
     scene.add(hill);
 
     // setup trees
-    var trunk = models['TreeTrunk'];
+    var trunk = models.TreeTrunk;
     trunk.position.y = treeBase;
     trunk.scale.y = treeScale;
 
-    for (var i = 0; i < treeCount; i++) {
-        var tree = {};
-        var lowerTrunk = trunk.clone();
-        var upperTrunk = trunk.clone();
-        tree.lower = lowerTrunk;
-        tree.upper = upperTrunk;
-        tree.baseHeight = treeBase;
-
-        lowerTrunk.rotation.y = twoPi / treeCount * i;
-
-        upperTrunk.rotation.y = -twoPi / treeCount * i;
-        upperTrunk.position.y += treeGap;
-        upperTrunk.rotation.x = pi;  // inver upper trunks
-
-
-        firebaseSync.addObject(lowerTrunk, "lowerTrunk-" + i);
-        firebaseSync.addObject(upperTrunk, "upperTrunk-" + i);
-
-
-        scene.add(lowerTrunk);
-        scene.add(upperTrunk);
-
-        trees.push(tree);
+    for (i = 0; i < treeCount; i++) {
+        setupTree(trunk, i);
     }
+
     // tree events
-    for (var i = 0; i < treeCount; i++) {
+    for (i = 0; i < treeCount; i++) {
         var log;
         log = trees[i].lower;
         if (!inAltspace) { cursorEvents.addObject(log); }
-        log.addEventListener("cursordown", function (event) {
-            var newHeight = this.position.y - dragonHeight / 4;
-            if (newHeight < lowerTrunkLimit) return;
-            this.position.y = newHeight;
-
-            firebaseSync.saveObject(this);
-            updateUpperLogs();
-        });
+        log.addEventListener("cursordown", shiftLowerLog);
         log = trees[i].upper;
         if (!inAltspace) { cursorEvents.addObject(log); }
-        log.addEventListener("cursordown", function (event) {
-            var newHeight = this.position.y + dragonHeight / 4;
-            if (newHeight > upperTrunkLimit) return;
-            this.position.y = newHeight;
-
-            firebaseSync.saveObject(this);
-            updateLowerLogs();
-        });
+        log.addEventListener("cursordown", shiftUpperLog);
     }
 
     // add some event listeners
     if (!inAltspace) { cursorEvents.addObject(terrain); }
-    terrain.addEventListener("cursordown", function (event) {
-        handleClick();
-    });
-    terrain.addEventListener("cursorup", function (event) {
-    });
-    //$('body').mousedown(function () {
-    //    handleClick();
-    //});
+    terrain.addEventListener("cursordown", lockOrFlap);
+    props.addEventListener("cursordown", lockOrFlap);
+    dragon.addEventListener("cursordown", lockOrFlap);
     $(window).keypress(function (e) {
-        if (e.keyCode == 0 || e.keyCode == 32) {
-            handleClick();
+        if (e.keyCode === 0 || e.keyCode == 32) {
+            lockOrFlap();
         }
     });
 
-
     // finalize firebase sync
-    firebaseSync.connect(onSyncReady);
-
-
+    firebaseSync.connect(initializeAndStartGameLoop);
 }
 
-function onSyncReady() {
-    // init and start main game loop    
-    onGameIdle();
-
+function initializeAndStartGameLoop() {
+    saveGamestateAndResetToIdle();
     animate();
 }
 
-
-
-function onGameIdle() {
-    console.log("idle");
-    isDead = false;
-    gamemode = "idle";
-    upVelocity = 0;
-    localDragonHeight = 12 + treeGap / 2;
-    $('#status')[0].textContent = idleMessage;
-}
-
-function onGamePlay() {
+function startGamePlay() {
+    isLocalPlay = true;
     startingPostsTraveled = postsTraveled;
     score = 0;
-    console.log("play");
     isDead = false;
     gamemode = "play";
     upVelocity = jumpVelocity; // initial flap
     PlayFlapSound();
-    //localDragonHeight = 24;
     $('#status')[0].textContent = "Score";
 }
 
-function setGameIdle() {
+function saveGamestateAndResetToIdle() {
+    isDead = false;
+    gamemode = "idle";
+    upVelocity = 0;
+    localDragonHeight = 12 + treeGap / 2;
+    if (typeof gamestate.userData.syncData === "undefined") {
+        gamestate.userData.syncData = {};
+    }
     gamestate.userData.syncData.status = idleMessage;
     firebaseSync.saveObject(gamestate);
-    onGameIdle();
+    $('#status')[0].textContent = idleMessage;
 }
 
-function onGameOver() {
-
+function endGameUpdateScoresSyncStateAndResetAfterDelay() {
     PlayDeathSounds();
 
-    console.log("over");
     isDead = true;
     gamemode = "over";
     $('#status')[0].textContent = "Game Over!";
     gamestate.userData.syncData.status = "Game Over!";
+
     updateHighScores();
+
     localFlaps = 0;
     gamestate.userData.syncData.flaps = 0;
 
@@ -404,30 +417,18 @@ function onGameOver() {
     firebaseSync.saveObject(gamestate);
     isLocalPlay = false;
 
-    setTimeout(setGameIdle, 3000);
+    setTimeout(saveGamestateAndResetToIdle, 3000);
 }
-
-
 
 function TryLockGame() {
-
-    if (gamestate.userData.syncData.lockedUserId) {
-        // game already locked;
-    }
-    else {
-        gamestate.userData.syncData.lockedUserId = localUser.userId;
-        firebaseSync.saveObject(gamestate);
-        onGameLocked();
-    }
+    if (gamestate.userData.syncData.lockedUserId) { return; }
+    gamestate.userData.syncData.lockedUserId = localUser.userId;
+    firebaseSync.saveObject(gamestate);
+    firebaseSync.firebaseRoom.child("objects/gamestate/syncData/lockedUserId").onDisconnect().remove();
+    startGamePlay();
 }
 
-function onGameLocked() {
-    isLocalPlay = true;
-    onGamePlay(); // start a new game
-}
-
-
-function handleClick() {
+function lockOrFlap() {
     switch (gamemode) {
         case "idle":
             TryLockGame();
@@ -437,22 +438,14 @@ function handleClick() {
             localFlaps++;
             PlayFlapSound();
             break;
-        case "over":
-            //onGamePlay(); // retry
-            break;
     }
 }
-
-
-
 
 function updateClouds() {
     for (var i = 0; i < 3; i++) {
         clouds[i].rotation.y += cloudspeed * delta;
     }
-
 }
-
 
 function showSyncInfo() {
     var state = gamestate.userData.syncData;
@@ -463,37 +456,26 @@ function showSyncInfo() {
     for (var property in state) {
         $("#sync").append(property + ": " + state[property] + "<br/>");
     }
-
 }
 
-
 function PlayDeathSounds() {
-    if (window.innerDepth === undefined || window.innerDepth < 500) return;
-
     hitSound.play();
-
     setTimeout(function () {
         dieSound.play();
-    }, 500)
+    }, 500);
 }
 
 function PlayFlapSound() {
-    if (window.innerDepth === undefined || window.innerDepth < 500) return;
-
-    wingSound.pause();
-    wingSound.currentTime = 0;
+    if (isGearVR) { return; }
     wingSound.play();
 }
 
 function PlayScoreSound() {
-    if (window.innerDepth === undefined || window.innerDepth < 500) return;
-
+    if (isGearVR) { return; }
     pointSound.play();
 }
 
-
 function updateHighScores() {
-
     if (typeof gamestate.userData.syncData.highScores === "undefined") {
         gamestate.userData.syncData.highScores = {};
     }
@@ -531,7 +513,7 @@ function displayHighScores() {
         var player = scores[i];
         if (typeof player === "undefined") break;
 
-        $('#highscores').append('<span>' + +player.highScore + " ... " + player.displayName + '</span></br>');
+        $('#highscores').append('<span>' + player.highScore + " ... " + player.displayName + '</span></br>');
     }
 
     // gamestate data will be auto saved next animation frame.
@@ -576,12 +558,11 @@ function animate() {
         // did we crash into ground?
         if (localDragonHeight < 0) {
             localDragonHeight = 0;
-            if (gamemode !== "over") onGameOver();
+            if (gamemode !== "over") endGameUpdateScoresSyncStateAndResetAfterDelay();
         }
 
         // did we crash into post?
-        //$('#status').html("out");
-        var postAngularWidth = .1;  // todo: need to find this true value;
+        var postAngularWidth = 0.1;  // todo: need to find this true value;
         for (var i = 0; i < trees.length; i++) {
             var postCenter = twoPi / treeCount * i;
             var start = postCenter - postAngularWidth;
@@ -601,19 +582,15 @@ function animate() {
                 // dragon in tree
                 if (localDragonHeight < tree.lower.position.y) {
                     // collision
-                    if (gamemode !== "over") onGameOver();
+                    if (gamemode !== "over") endGameUpdateScoresSyncStateAndResetAfterDelay();
                 }
                 if (localDragonHeight + dragonHeight > tree.upper.position.y) {
                     // collision
-                    if (gamemode !== "over") onGameOver();
+                    if (gamemode !== "over") endGameUpdateScoresSyncStateAndResetAfterDelay();
                 }
-
-                //$('#status').html("in");
             }
         }
     }
-
-    //dragon.rotation.z = upVelocity;  // FIXME: Can't do this because current obj file has off pivot that's not at the origin.
 
     // move dragon around the ring
     if (!isDead) {
@@ -623,11 +600,6 @@ function animate() {
         }
     }
 
-    // update sync data
-    if (typeof gamestate.userData.syncData === "undefined") {
-        gamestate.userData.syncData = {};
-    }
-
     var state = gamestate.userData.syncData;
 
     // hack to get high scores to show.. the delay is needed because syncData doesn't seem to initialize right away.  Amber said she may look into this.
@@ -635,7 +607,7 @@ function animate() {
         highScoresShown = true;
         setTimeout(function () {
             displayHighScores();
-        },3000)
+        },3000);
         
     }
 
@@ -652,6 +624,7 @@ function animate() {
 
         if (!isDead) {
             state.status = localUser.displayName + "'s Score";
+            firebaseSync.firebaseRoom.child("objects/gamestate/syncData/status").onDisconnect().set(idleMessage);
         }
 
         firebaseSync.saveObject(gamestate);
@@ -691,18 +664,17 @@ function animate() {
         }
     }
 
-    $('#score')[0].textContent = state.score;
-    $('#status')[0].textContent = state.status;
+    $('#score')[0].textContent = state.score || '';
+    $('#status')[0].textContent = state.status || '';
+
 
     // update html 
-    // $('#stats #delta').text(delta.toFixed(3));
-    // $('#stats #time').text(time.toFixed(3));
-    // $('#stats #fps').text(Math.round(fps));
-
-
-    // showSyncInfo();
-
-
+    if (debug) {
+        $('#stats #delta').text(delta.toFixed(3));
+        $('#stats #time').text(time.toFixed(3));
+        $('#stats #fps').text(Math.round(fps));
+        showSyncInfo();
+    }
 
     updateClouds();
 
@@ -711,7 +683,7 @@ function animate() {
     renderer.render(scene, camera);
 
     localFlap = false;
-};
+}
 
 
 if (inAltspace) {
