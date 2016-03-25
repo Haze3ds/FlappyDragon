@@ -3,22 +3,17 @@
   src: url('fonts/04B_19__.TTF');
 }
 
-
 body {
     font-family: PixelFont;
     color: #fff;
     text-shadow: 2px 2px 0 #333, 2px -2px 0 #333, -2px 2px 0 #333, -2px -2px 0 #333;
     margin: 0px;
     overflow: hidden;
-    /*background: #70C5CE;*/
     background: #333;
     font-size: large;
     text-align: center;
 
-    /*background-image: url(images/ws_Summer_clouds_1280x1024.jpg);
-    background-size: cover;*/
-
-	background: rgba(1, 0, 0, 0);
+    background: rgba(1, 0, 0, 0);
 
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -35,30 +30,13 @@ header {
 }
 
 header {
-	background: -webkit-linear-gradient(top, #AB3530, #802B2E);
-	background: linear-gradient(top, #AB3530, #802B2E);
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-}
-
-
-
-#status 
-{
+    background: -webkit-linear-gradient(top, #AB3530, #802B2E);
+    background: linear-gradient(top, #AB3530, #802B2E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 #score {
-    /*
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    margin-left: -100px;
-    margin-top: -100px;
-    line-height: 200px;
-    width: 200px;
-    height: 200px;
-        */
-
     font-size: 128px;
 }
 
@@ -84,15 +62,6 @@ header {
     text-align: center;
     line-height: 1.2em;
 }
-
-canvas {
-  position: absolute;
-  text-align: left;
-  top: 0;
-  left: 0;
-  z-index: 100;
-}
-
 
 #sync, #stats {
     display: none;
