@@ -331,9 +331,7 @@ function setupSceneAndStartSync() {
 
     // add some event listeners
     if (!inAltspace) { cursorEvents.addObject(terrain); }
-    terrain.addEventListener("cursordown", function (event) {
-        lockOrFlap();
-    });
+    terrain.addEventListener("cursordown", lockOrFlap);
     $(window).keypress(function (e) {
         if (e.keyCode === 0 || e.keyCode == 32) {
             lockOrFlap();
@@ -377,8 +375,7 @@ function setGamestateAndResetToIdle() {
     resetToIdle();
 }
 
-function onGameOver() {
-
+function endGameUpdateScoresSyncStateAndResetAfterDelay() {
     PlayDeathSounds();
 
     console.log("over");
@@ -386,7 +383,9 @@ function onGameOver() {
     gamemode = "over";
     $('#status')[0].textContent = "Game Over!";
     gamestate.userData.syncData.status = "Game Over!";
+
     updateHighScores();
+
     localFlaps = 0;
     gamestate.userData.syncData.flaps = 0;
 
@@ -396,8 +395,6 @@ function onGameOver() {
 
     setTimeout(setGamestateAndResetToIdle, 3000);
 }
-
-
 
 function TryLockGame() {
     if (gamestate.userData.syncData.lockedUserId) { return; }
@@ -419,16 +416,11 @@ function lockOrFlap() {
     }
 }
 
-
-
-
 function updateClouds() {
     for (var i = 0; i < 3; i++) {
         clouds[i].rotation.y += cloudspeed * delta;
     }
-
 }
-
 
 function showSyncInfo() {
     var state = gamestate.userData.syncData;
@@ -439,9 +431,7 @@ function showSyncInfo() {
     for (var property in state) {
         $("#sync").append(property + ": " + state[property] + "<br/>");
     }
-
 }
-
 
 function PlayDeathSounds() {
     if (window.innerDepth === undefined || window.innerDepth < 500) return;
@@ -467,9 +457,7 @@ function PlayScoreSound() {
     pointSound.play();
 }
 
-
 function updateHighScores() {
-
     if (typeof gamestate.userData.syncData.highScores === "undefined") {
         gamestate.userData.syncData.highScores = {};
     }
@@ -552,7 +540,7 @@ function animate() {
         // did we crash into ground?
         if (localDragonHeight < 0) {
             localDragonHeight = 0;
-            if (gamemode !== "over") onGameOver();
+            if (gamemode !== "over") endGameUpdateScoresSyncStateAndResetAfterDelay();
         }
 
         // did we crash into post?
@@ -576,11 +564,11 @@ function animate() {
                 // dragon in tree
                 if (localDragonHeight < tree.lower.position.y) {
                     // collision
-                    if (gamemode !== "over") onGameOver();
+                    if (gamemode !== "over") endGameUpdateScoresSyncStateAndResetAfterDelay();
                 }
                 if (localDragonHeight + dragonHeight > tree.upper.position.y) {
                     // collision
-                    if (gamemode !== "over") onGameOver();
+                    if (gamemode !== "over") endGameUpdateScoresSyncStateAndResetAfterDelay();
                 }
             }
         }
