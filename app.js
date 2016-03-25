@@ -1,4 +1,5 @@
 ﻿var inAltspace = window.hasOwnProperty('altspace');
+var isGearVR = /mobile/i.test(navigator.userAgent);
 
 var scene = new THREE.Scene();
 var camera;
@@ -439,26 +440,19 @@ function showSyncInfo() {
 }
 
 function PlayDeathSounds() {
-    if (window.innerDepth === undefined || window.innerDepth < 500) return;
-
     hitSound.play();
-
     setTimeout(function () {
         dieSound.play();
     }, 500);
 }
 
 function PlayFlapSound() {
-    if (window.innerDepth === undefined || window.innerDepth < 500) return;
-
-    wingSound.pause();
-    wingSound.currentTime = 0;
+    if (isGearVR) { return; }
     wingSound.play();
 }
 
 function PlayScoreSound() {
-    if (window.innerDepth === undefined || window.innerDepth < 500) return;
-
+    if (isGearVR) { return; }
     pointSound.play();
 }
 
