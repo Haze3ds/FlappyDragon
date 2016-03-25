@@ -224,6 +224,46 @@ function updateUpperLogs() {
     }
 }
 
+function setupTree(trunk, i) {
+    var tree = {};
+    var lowerTrunk = trunk.clone();
+    var upperTrunk = trunk.clone();
+    tree.lower = lowerTrunk;
+    tree.upper = upperTrunk;
+    tree.baseHeight = treeBase;
+
+    lowerTrunk.rotation.y = twoPi / treeCount * i;
+
+    upperTrunk.rotation.y = -twoPi / treeCount * i;
+    upperTrunk.position.y += treeGap;
+    upperTrunk.rotation.x = pi;  // inver upper trunks
+
+    firebaseSync.addObject(lowerTrunk, "lowerTrunk-" + i);
+    firebaseSync.addObject(upperTrunk, "upperTrunk-" + i);
+
+    scene.add(lowerTrunk);
+    scene.add(upperTrunk);
+
+    trees.push(tree);
+}
+
+function shiftLowerLog(event) {
+    var newHeight = this.position.y - dragonHeight / 4;
+    if (newHeight < lowerTrunkLimit) return;
+    this.position.y = newHeight;
+
+    firebaseSync.saveObject(this);
+    updateUpperLogs();
+}
+
+function shiftUpperLog(event) {
+    var newHeight = this.position.y + dragonHeight / 4;
+    if (newHeight > upperTrunkLimit) return;
+    this.position.y = newHeight;
+
+    firebaseSync.saveObject(this);
+    updateLowerLogs();
+}
 
 function onModelsLoaded() {
     var i;
@@ -275,52 +315,18 @@ function onModelsLoaded() {
     trunk.scale.y = treeScale;
 
     for (i = 0; i < treeCount; i++) {
-        var tree = {};
-        var lowerTrunk = trunk.clone();
-        var upperTrunk = trunk.clone();
-        tree.lower = lowerTrunk;
-        tree.upper = upperTrunk;
-        tree.baseHeight = treeBase;
-
-        lowerTrunk.rotation.y = twoPi / treeCount * i;
-
-        upperTrunk.rotation.y = -twoPi / treeCount * i;
-        upperTrunk.position.y += treeGap;
-        upperTrunk.rotation.x = pi;  // inver upper trunks
-
-
-        firebaseSync.addObject(lowerTrunk, "lowerTrunk-" + i);
-        firebaseSync.addObject(upperTrunk, "upperTrunk-" + i);
-
-
-        scene.add(lowerTrunk);
-        scene.add(upperTrunk);
-
-        trees.push(tree);
+        setupTree(trunk, i);
     }
+
     // tree events
     for (i = 0; i < treeCount; i++) {
         var log;
         log = trees[i].lower;
         if (!inAltspace) { cursorEvents.addObject(log); }
-        log.addEventListener("cursordown", function (event) {
-            var newHeight = this.position.y - dragonHeight / 4;
-            if (newHeight < lowerTrunkLimit) return;
-            this.position.y = newHeight;
-
-            firebaseSync.saveObject(this);
-            updateUpperLogs();
-        });
+        log.addEventListener("cursordown", shiftLowerLog);
         log = trees[i].upper;
         if (!inAltspace) { cursorEvents.addObject(log); }
-        log.addEventListener("cursordown", function (event) {
-            var newHeight = this.position.y + dragonHeight / 4;
-            if (newHeight > upperTrunkLimit) return;
-            this.position.y = newHeight;
-
-            firebaseSync.saveObject(this);
-            updateLowerLogs();
-        });
+        log.addEventListener("cursordown", shiftUpperLog);
     }
 
     // add some event listeners
@@ -334,11 +340,8 @@ function onModelsLoaded() {
         }
     });
 
-
     // finalize firebase sync
     firebaseSync.connect(onSyncReady);
-
-
 }
 
 function onSyncReady() {
