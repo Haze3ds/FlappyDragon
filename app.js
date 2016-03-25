@@ -73,6 +73,12 @@ var lastSyncScore = 0;
 var lastSyncStatus = "Game Over!";
 
 var highScoresShown = false;
+var debug = false;
+
+if (debug) {
+    stats.style.display = 'block';
+    sync.style.display = 'block';
+}
 
 
 function logUsers() {
@@ -651,6 +657,15 @@ function animate() {
 
     $('#score')[0].textContent = state.score;
     $('#status')[0].textContent = state.status;
+
+
+    // update html 
+    if (debug) {
+        $('#stats #delta').text(delta.toFixed(3));
+        $('#stats #time').text(time.toFixed(3));
+        $('#stats #fps').text(Math.round(fps));
+        showSyncInfo();
+    }
 
     updateClouds();
 
