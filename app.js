@@ -1,6 +1,5 @@
 ﻿var inAltspace = window.hasOwnProperty('altspace');
 
-
 var scene = new THREE.Scene();
 var camera;
 var renderer;
@@ -339,11 +338,10 @@ function setupSceneAndStartSync() {
     });
 
     // finalize firebase sync
-    firebaseSync.connect(onSyncReady);
+    firebaseSync.connect(initializeAndStartGameLoop);
 }
 
-function onSyncReady() {
-    // init and start main game loop    
+function initializeAndStartGameLoop() {
     resetToIdle();
     animate();
 }
@@ -400,6 +398,7 @@ function TryLockGame() {
     if (gamestate.userData.syncData.lockedUserId) { return; }
     gamestate.userData.syncData.lockedUserId = localUser.userId;
     firebaseSync.saveObject(gamestate);
+    firebaseSync.firebaseRoom.child("objects/gamestate/syncData/lockedUserId").onDisconnect().remove();
     startGamePlay();
 }
 
