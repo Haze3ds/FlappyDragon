@@ -152,24 +152,61 @@ function InitGame() {
         cursorEvents.enableMouseEvents(camera);
     }
 
-    loadSounds();
-    loadModels();
+    loadSounds().then(function () {
+        loadModels();
+    });
 }
+
+var AudioContext = window.AudioContext || window.webkitAudioContext;
+var audioContext = new AudioContext();
+function AppAudio(url) {
+    this.volume = 1;
+    this.loaded = new Promise(function (resolve, reject) {
+        var req = new XMLHttpRequest();
+        req.open('GET', url);
+        req.responseType = 'arraybuffer';
+        req.onload = function () {
+            audioContext.decodeAudioData(req.response, function (buffer) {
+                this.buffer = buffer;
+                resolve();
+            }.bind(this));
+        }.bind(this);
+        req.send();
+    }.bind(this));
+}
+AppAudio.prototype.play = function () {
+	var source = audioContext.createBufferSource();
+	source.buffer = this.buffer;
+
+	var gainNode = audioContext.createGain();
+	gainNode.gain.value = this.volume;
+	source.connect(gainNode);
+	gainNode.connect(audioContext.destination);
+
+	source.start(0);
+};
 
 
 function loadSounds() {
-    // Load sound effect. Chromium doesn't support mp3 so include wav too.
-    hitSound = new Audio("sounds/sfx_hit.ogg");
-    dieSound = new Audio("sounds/sfx_die.ogg");
-    pointSound = new Audio("sounds/sfx_point.ogg");
-    swooshingSound = new Audio("sounds/sfx_swooshing.ogg");
-    wingSound = new Audio("sounds/sfx_wing.ogg");
+    // Load sound effect.
+    hitSound = new AppAudio("sounds/sfx_hit.ogg");
+    dieSound = new AppAudio("sounds/sfx_die.ogg");
+    pointSound = new AppAudio("sounds/sfx_point.ogg");
+    swooshingSound = new AppAudio("sounds/sfx_swooshing.ogg");
+    wingSound = new AppAudio("sounds/sfx_wing.ogg");
 
     hitSound.volume = 0.5;
     dieSound.volume = 0.5;
     pointSound.volume = 0.2;
     swooshingSound.volume = 0.5;
     wingSound.volume = 0.5;
+    return Promise.all([
+        hitSound.loaded,
+        dieSound.loaded,
+        pointSound.loaded,
+        swooshingSound.loaded,
+        wingSound.loaded
+    ]);
 }
 
 function loadModels() {
