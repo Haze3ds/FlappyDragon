@@ -372,16 +372,8 @@ function setupSceneAndStartSync() {
 }
 
 function initializeAndStartGameLoop() {
-    resetToIdle();
+    saveGamestateAndResetToIdle();
     animate();
-}
-
-function resetToIdle() {
-    isDead = false;
-    gamemode = "idle";
-    upVelocity = 0;
-    localDragonHeight = 12 + treeGap / 2;
-    $('#status')[0].textContent = idleMessage;
 }
 
 function startGamePlay() {
@@ -395,10 +387,17 @@ function startGamePlay() {
     $('#status')[0].textContent = "Score";
 }
 
-function setGamestateAndResetToIdle() {
+function saveGamestateAndResetToIdle() {
+    isDead = false;
+    gamemode = "idle";
+    upVelocity = 0;
+    localDragonHeight = 12 + treeGap / 2;
+    if (typeof gamestate.userData.syncData === "undefined") {
+        gamestate.userData.syncData = {};
+    }
     gamestate.userData.syncData.status = idleMessage;
     firebaseSync.saveObject(gamestate);
-    resetToIdle();
+    $('#status')[0].textContent = idleMessage;
 }
 
 function endGameUpdateScoresSyncStateAndResetAfterDelay() {
@@ -418,7 +417,7 @@ function endGameUpdateScoresSyncStateAndResetAfterDelay() {
     firebaseSync.saveObject(gamestate);
     isLocalPlay = false;
 
-    setTimeout(setGamestateAndResetToIdle, 3000);
+    setTimeout(saveGamestateAndResetToIdle, 3000);
 }
 
 function TryLockGame() {
@@ -601,11 +600,6 @@ function animate() {
         }
     }
 
-    // update sync data
-    if (typeof gamestate.userData.syncData === "undefined") {
-        gamestate.userData.syncData = {};
-    }
-
     var state = gamestate.userData.syncData;
 
     // hack to get high scores to show.. the delay is needed because syncData doesn't seem to initialize right away.  Amber said she may look into this.
@@ -670,8 +664,8 @@ function animate() {
         }
     }
 
-    $('#score')[0].textContent = state.score;
-    $('#status')[0].textContent = state.status;
+    $('#score')[0].textContent = state.score || '';
+    $('#status')[0].textContent = state.status || '';
 
 
     // update html 
