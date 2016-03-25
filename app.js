@@ -45,7 +45,7 @@ var gravity = 9.8 * 9.8 * 4;
 var upVelocity = 0;
 var jumpVelocity = gravity / 4;
 var dragonHeight = 12;
-var treeGap = dragonHeight * 2.5;
+var treeGap = dragonHeight * 2.6;
 var treeScale = 1.0;
 var treeBase = 20;
 var postsTraveled = 0;
@@ -338,6 +338,8 @@ function setupSceneAndStartSync() {
     // add some event listeners
     if (!inAltspace) { cursorEvents.addObject(terrain); }
     terrain.addEventListener("cursordown", lockOrFlap);
+    props.addEventListener("cursordown", lockOrFlap);
+    dragon.addEventListener("cursordown", lockOrFlap);
     $(window).keypress(function (e) {
         if (e.keyCode === 0 || e.keyCode == 32) {
             lockOrFlap();
