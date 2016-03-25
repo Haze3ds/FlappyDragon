@@ -74,24 +74,11 @@ var lastSyncScore = 0;
 var lastSyncStatus = "Game Over!";
 
 var highScoresShown = false;
-var debug = false;
 
+var debug = false;
 if (debug) {
     stats.style.display = 'block';
     sync.style.display = 'block';
-}
-
-
-function logUsers() {
-    console.log("logUsers called.");
-
-    console.log(window.innerDepth);
-
-    if ("Alt" in window) {
-        Alt.Users.getUsers().then(function (args) {
-            console.log(args);
-        });
-    }
 }
 
 
@@ -112,7 +99,6 @@ function setLocalUser() {
     if ("Alt" in window) {
         window.Alt.Users.getLocalUser().then(function (user) {
             localUser = { displayName: user.displayName, isLocal: user.isLocal, userId: user.userId };
-            console.log(user);
         });
     }
 }
@@ -140,8 +126,6 @@ function Init() {
 }
 
 function InitGame() {
-    console.log('localUser: ' + localUser.displayName);
-
     clock = new THREE.Clock();
 
     if (inAltspace) {
@@ -356,7 +340,6 @@ function initializeAndStartGameLoop() {
 }
 
 function resetToIdle() {
-    console.log("idle");
     isDead = false;
     gamemode = "idle";
     upVelocity = 0;
@@ -368,7 +351,6 @@ function startGamePlay() {
     isLocalPlay = true;
     startingPostsTraveled = postsTraveled;
     score = 0;
-    console.log("play");
     isDead = false;
     gamemode = "play";
     upVelocity = jumpVelocity; // initial flap
@@ -385,7 +367,6 @@ function setGamestateAndResetToIdle() {
 function endGameUpdateScoresSyncStateAndResetAfterDelay() {
     PlayDeathSounds();
 
-    console.log("over");
     isDead = true;
     gamemode = "over";
     $('#status')[0].textContent = "Game Over!";
